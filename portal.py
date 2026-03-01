@@ -13,12 +13,21 @@ st.set_page_config(page_title="Law Portal", page_icon="⚖️", layout="wide")
 def init_db():
     if not firebase_admin._apps:
         try:
-            # This looks for the Firebase security key file you will download
-            cred = credentials.Certificate('firebase-key.json')
+            # First, try to load credentials from Streamlit Secrets (for Cloud Deployment)
+            if "firebase" in st.secrets:
+                # Convert the Streamlit secret AttrDict into a standard Python dictionary
+                cert_dict = dict(st.secrets["firebase"])
+                cred = credentials.Certificate(cert_dict)
+            else:
+                # Fallback to local file if secrets aren't found (for local PC development)
+                cred = credentials.Certificate('firebase-key.json')
+                
             firebase_admin.initialize_app(cred)
             return firestore.client()
-        except FileNotFoundError:
-            return None # Returns None if the key isn't found yet
+        except Exception as e:
+            # Silently fail here so the app still runs in mock data mode if no keys are found
+            print(f"Database connection error: {e}")
+            return None 
     return firestore.client()
 
 db = init_db()
@@ -77,7 +86,7 @@ st.sidebar.markdown("---")
 st.sidebar.info("Synced automatically from Gmail via Cloud Functions.")
 
 if db is None:
-    st.sidebar.warning("⚠️ Offline Mode: 'firebase-key.json' not found. Showing preview data.")
+    st.sidebar.warning("⚠️ Offline Mode: Could not connect to database. Showing preview data.")
 
 # --- 5. MAIN UI DASHBOARD ---
 if selected_module == "Dashboard":
