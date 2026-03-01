@@ -262,18 +262,29 @@
         function App() {
           const [currentDate, setCurrentDate] = useState(new Date());
 
+          // Update the current date every minute so the countdown is truly live
+          useEffect(() => {
+            const timer = setInterval(() => setCurrentDate(new Date()), 60000);
+            return () => clearInterval(timer);
+          }, []);
+
           const getStatus = (opened, due) => {
             const openDate = new Date(opened);
             const dueDate = new Date(due);
-            const now = new Date();
+            const now = currentDate; // Use the live state variable
             
-            const daysRemaining = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+            const timeDiffMs = dueDate - now;
+            const hoursRemaining = Math.ceil(timeDiffMs / (1000 * 60 * 60));
+            const daysRemaining = Math.ceil(timeDiffMs / (1000 * 60 * 60 * 24));
 
             if (now > dueDate) return { label: 'Closed', color: 'bg-slate-100 text-slate-600 border-slate-200', urgent: false };
             if (now < openDate) return { label: 'Upcoming', color: 'bg-slate-100 text-slate-600 border-slate-200', urgent: false };
             
-            if (daysRemaining <= 3) return { label: 'Due Soon', color: 'bg-rose-100 text-rose-700 border-rose-200', urgent: true, days: daysRemaining };
-            return { label: 'Active', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', urgent: false, days: daysRemaining };
+            // Switch to hours if 48 hours or less remaining
+            const timeDisplay = hoursRemaining <= 48 ? `${hoursRemaining}h` : `${daysRemaining}d`;
+            
+            if (daysRemaining <= 3) return { label: 'Due Soon', color: 'bg-rose-100 text-rose-700 border-rose-200', urgent: true, timeDisplay };
+            return { label: 'Active', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', urgent: false, timeDisplay };
           };
 
           // Flatten and sort assessments for the timeline chart
@@ -363,7 +374,7 @@
                                 {formattedDate}
                               </p>
                               <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${status.color}`}>
-                                {status.label} {status.days && `(${status.days}d)`}
+                                {status.label} {status.timeDisplay && `(${status.timeDisplay})`}
                               </span>
                             </div>
                           </div>
@@ -409,7 +420,7 @@
                                       )}
                                     </h4>
                                     <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${status.color}`}>
-                                      {status.label} {status.days && `(${status.days}d)`}
+                                      {status.label} {status.timeDisplay && `(${status.timeDisplay})`}
                                     </span>
                                   </div>
 
